@@ -1,0 +1,93 @@
+{
+  "name": "codex-usage-monitor",
+  "displayName": "Codex Usage Monitor",
+  "description": "Show Codex CLI rate limit and token usage in the VS Code status bar.",
+  "version": "0.1.0",
+  "publisher": "sunyi-local",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Camellia-boy/codex-usage-monitor.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Camellia-boy/codex-usage-monitor/issues"
+  },
+  "homepage": "https://github.com/Camellia-boy/codex-usage-monitor#readme",
+  "engines": {
+    "vscode": "^1.92.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished",
+    "onCommand:codexUsageMonitor.refresh",
+    "onCommand:codexUsageMonitor.openSessionsFolder"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "codexUsageMonitor.refresh",
+        "title": "Codex Usage: Refresh"
+      },
+      {
+        "command": "codexUsageMonitor.openSessionsFolder",
+        "title": "Codex Usage: Open Sessions Folder"
+      }
+    ],
+    "configuration": {
+      "title": "Codex Usage Monitor",
+      "properties": {
+        "codexUsageMonitor.codexHome": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the Codex config directory. Empty means ~/.codex."
+        },
+        "codexUsageMonitor.refreshIntervalSeconds": {
+          "type": "number",
+          "default": 30,
+          "minimum": 5,
+          "description": "How often to refresh usage data."
+        },
+        "codexUsageMonitor.scanDays": {
+          "type": "number",
+          "default": 14,
+          "minimum": 1,
+          "description": "Only scan Codex session files modified in the last N days."
+        },
+        "codexUsageMonitor.warningThresholdPercent": {
+          "type": "number",
+          "default": 80,
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Show a warning when the primary window reaches this percent."
+        },
+        "codexUsageMonitor.criticalThresholdPercent": {
+          "type": "number",
+          "default": 90,
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Show a stronger warning when the primary window reaches this percent."
+        },
+        "codexUsageMonitor.showSecondaryWindow": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the secondary rate-limit window in the status bar."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "@types/vscode": "^1.92.0",
+    "@vscode/vsce": "^3.9.1",
+    "typescript": "^5.5.4"
+  }
+}

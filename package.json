@@ -3,7 +3,7 @@
   "displayName": "Codex Usage Monitor",
   "description": "Show Codex CLI rate limit and token usage in the VS Code status bar.",
   "version": "0.1.0",
-  "publisher": "sunyi-local",
+  "publisher": "SunYingkai",
   "license": "MIT",
   "repository": {
     "type": "git",

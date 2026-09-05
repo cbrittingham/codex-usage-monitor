@@ -1,4 +1,4 @@
-﻿# Codex Usage Monitor (Remaining
+﻿# Codex Usage Monitor (Remaining)
 
 A small VS Code extension that shows Codex CLI usage in the status bar by reading local Codex session JSONL files.
 

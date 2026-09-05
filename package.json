@@ -3,16 +3,16 @@
   "displayName": "Codex Usage Monitor",
   "description": "Show Codex CLI rate limit and token usage in the VS Code status bar.",
   "version": "0.1.0",
-  "publisher": "SunYingkai",
+  "publisher": "Chet",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Camellia-boy/codex-usage-monitor.git"
+    "url": "https://github.com/cbrittingham/codex-usage-monitor.git"
   },
   "bugs": {
-    "url": "https://github.com/Camellia-boy/codex-usage-monitor/issues"
+    "url": "https://github.com/cbrittingham/codex-usage-monitor/issues"
   },
-  "homepage": "https://github.com/Camellia-boy/codex-usage-monitor#readme",
+  "homepage": "https://github.com/cbrittingham/codex-usage-monitor#readme",
   "engines": {
     "vscode": "^1.92.0"
   },

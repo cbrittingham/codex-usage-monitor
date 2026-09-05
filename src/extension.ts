@@ -1,6 +1,6 @@
-﻿import * as path from 'path';
-import * as vscode from 'vscode';
-import { CodexUsageSnapshot, readCodexUsage } from './codexUsage';
+﻿import * as path from "path";
+import * as vscode from "vscode";
+import { CodexUsageSnapshot, readCodexUsage } from "./codexUsage";
 
 let statusBar: vscode.StatusBarItem;
 let outputChannel: vscode.OutputChannel;
@@ -8,25 +8,39 @@ let refreshTimer: NodeJS.Timeout | undefined;
 let lastWarningKey: string | undefined;
 
 export function activate(context: vscode.ExtensionContext): void {
-  outputChannel = vscode.window.createOutputChannel('Codex Usage Monitor');
-  outputChannel.appendLine('Activating Codex Usage Monitor...');
+  outputChannel = vscode.window.createOutputChannel("Codex Usage Monitor");
+  outputChannel.appendLine("Activating Codex Usage Monitor...");
 
-  statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 10000);
-  statusBar.command = 'codexUsageMonitor.refresh';
-  statusBar.name = 'Codex Usage Monitor';
-  statusBar.text = 'Codex ...';
-  statusBar.tooltip = 'Loading Codex usage...';
+  statusBar = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Right,
+    10,
+  );
+  statusBar.command = "codexUsageMonitor.refresh";
+  statusBar.name = "Codex Usage Monitor";
+  statusBar.text = "Codex ...";
+  statusBar.tooltip = "Loading Codex usage...";
   statusBar.show();
 
   context.subscriptions.push(statusBar, outputChannel);
-  context.subscriptions.push(vscode.commands.registerCommand('codexUsageMonitor.refresh', () => refreshUsage(true)));
-  context.subscriptions.push(vscode.commands.registerCommand('codexUsageMonitor.openSessionsFolder', openSessionsFolder));
-  context.subscriptions.push(vscode.workspace.onDidChangeConfiguration((event) => {
-    if (event.affectsConfiguration('codexUsageMonitor')) {
-      scheduleRefresh();
-      void refreshUsage(false);
-    }
-  }));
+  context.subscriptions.push(
+    vscode.commands.registerCommand("codexUsageMonitor.refresh", () =>
+      refreshUsage(true),
+    ),
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "codexUsageMonitor.openSessionsFolder",
+      openSessionsFolder,
+    ),
+  );
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration("codexUsageMonitor")) {
+        scheduleRefresh();
+        void refreshUsage(false);
+      }
+    }),
+  );
 
   scheduleRefresh();
   void refreshUsage(false);
@@ -43,90 +57,134 @@ function scheduleRefresh(): void {
     clearInterval(refreshTimer);
   }
 
-  const intervalSeconds = getConfig().get<number>('refreshIntervalSeconds', 30);
-  refreshTimer = setInterval(() => refreshUsage(false), Math.max(5, intervalSeconds) * 1000);
+  const intervalSeconds = getConfig().get<number>("refreshIntervalSeconds", 30);
+  refreshTimer = setInterval(
+    () => refreshUsage(false),
+    Math.max(5, intervalSeconds) * 1000,
+  );
 }
 
 async function refreshUsage(showInfo: boolean): Promise<void> {
   const config = getConfig();
-  statusBar.text = 'Codex ...';
-  outputChannel.appendLine('Refreshing Codex usage...');
+  statusBar.text = "Codex ...";
+  outputChannel.appendLine("Refreshing Codex usage...");
 
   try {
     const snapshot = await readCodexUsage({
-      codexHome: config.get<string>('codexHome', ''),
-      scanDays: config.get<number>('scanDays', 14),
+      codexHome: config.get<string>("codexHome", ""),
+      scanDays: config.get<number>("scanDays", 14),
     });
 
     renderSnapshot(snapshot);
-    outputChannel.appendLine(`Usage loaded: primary= secondary= files= events=`);
+    outputChannel.appendLine(
+      `Usage loaded: primary= secondary= files= events=`,
+    );
     maybeWarn(snapshot);
 
     if (showInfo) {
-      vscode.window.showInformationMessage('Codex usage refreshed.');
+      vscode.window.showInformationMessage("Codex usage refreshed.");
     }
   } catch (error) {
-    statusBar.text = 'Codex ?';
+    statusBar.text = "Codex ?";
     statusBar.tooltip = `Failed to read Codex usage: ${String(error)}`;
     if (showInfo) {
-      vscode.window.showErrorMessage(`Failed to read Codex usage: ${String(error)}`);
+      vscode.window.showErrorMessage(
+        `Failed to read Codex usage: ${String(error)}`,
+      );
     }
   }
 }
 
 function renderSnapshot(snapshot: CodexUsageSnapshot): void {
-  const showSecondary = getConfig().get<boolean>('showSecondaryWindow', true);
+  const showSecondary = getConfig().get<boolean>("showSecondaryWindow", true);
 
   if (!snapshot.primary && !snapshot.secondary) {
-    statusBar.text = 'Codex no data';
+    statusBar.text = "Codex no data";
     statusBar.tooltip = buildTooltip(snapshot);
     return;
   }
 
-  const primary = snapshot.primary ? `${formatPercent(snapshot.primary.usedPercent)}` : '--';
-  const secondary = snapshot.secondary ? `${formatPercent(snapshot.secondary.usedPercent)}` : '--';
-  statusBar.text = showSecondary ? `Codex ${primary} / ${secondary}` : `Codex ${primary}`;
+  let primaryLabel = snapshot.primary?.windowMinutes
+    ? `${formatWindowMinutes(snapshot.primary.windowMinutes)}`
+    : "";
+  let secondaryLabel = snapshot.secondary?.windowMinutes
+    ? `${formatWindowMinutes(snapshot.secondary.windowMinutes)}`
+    : "";
+
+  const primary = snapshot.primary
+    ? `${formatPercent(snapshot.primary.usedPercent)}`
+    : "--";
+  const secondary = snapshot.secondary
+    ? `${formatPercent(snapshot.secondary.usedPercent)}`
+    : "--";
+  statusBar.text = showSecondary
+    ? `Codex ${primary} (${primaryLabel}) / ${secondary} (${secondaryLabel})`
+    : `Codex ${primary}`;
   statusBar.tooltip = buildTooltip(snapshot);
 }
 
 function buildTooltip(snapshot: CodexUsageSnapshot): vscode.MarkdownString {
   const tooltip = new vscode.MarkdownString(undefined, true);
   tooltip.isTrusted = true;
-  tooltip.appendMarkdown('**Codex Usage Monitor**\n\n');
+  tooltip.appendMarkdown("**Codex Usage Monitor (Remaining)**\n\n");
 
   if (snapshot.planType) {
     tooltip.appendMarkdown(`Plan: \`${snapshot.planType}\`\n\n`);
   }
 
-  tooltip.appendMarkdown(`Primary: ${formatWindow(snapshot.primary)}\n\n`);
-  tooltip.appendMarkdown(`Secondary: ${formatWindow(snapshot.secondary)}\n\n`);
+  let primaryLabel = snapshot.primary?.windowMinutes
+    ? `${formatWindowMinutes(snapshot.primary.windowMinutes)}`
+    : "Primary";
+  let secondaryLabel = snapshot.secondary?.windowMinutes
+    ? `${formatWindowMinutes(snapshot.secondary.windowMinutes)}`
+    : "Secondary";
+
+  tooltip.appendMarkdown(
+    `${primaryLabel}: ${formatWindow(snapshot.primary)}\n\n`,
+  );
+  tooltip.appendMarkdown(
+    `${secondaryLabel}: ${formatWindow(snapshot.secondary)}\n\n`,
+  );
 
   if (snapshot.lastTokenUsage) {
-    tooltip.appendMarkdown(`Last request tokens: ${snapshot.lastTokenUsage.totalTokens.toLocaleString()} `);
-    tooltip.appendMarkdown(`(in ${snapshot.lastTokenUsage.inputTokens.toLocaleString()}, out ${snapshot.lastTokenUsage.outputTokens.toLocaleString()}, cached ${snapshot.lastTokenUsage.cachedInputTokens.toLocaleString()})\n\n`);
+    tooltip.appendMarkdown(
+      `Last request tokens: ${snapshot.lastTokenUsage.totalTokens.toLocaleString()} `,
+    );
+    tooltip.appendMarkdown(
+      `(in ${snapshot.lastTokenUsage.inputTokens.toLocaleString()}, out ${snapshot.lastTokenUsage.outputTokens.toLocaleString()}, cached ${snapshot.lastTokenUsage.cachedInputTokens.toLocaleString()})\n\n`,
+    );
   }
 
   if (snapshot.totalTokenUsage) {
-    tooltip.appendMarkdown(`Session total tokens: ${snapshot.totalTokenUsage.totalTokens.toLocaleString()}\n\n`);
+    tooltip.appendMarkdown(
+      `Session total tokens: ${snapshot.totalTokenUsage.totalTokens.toLocaleString()}\n\n`,
+    );
   }
 
   if (snapshot.latestTimestamp) {
-    tooltip.appendMarkdown(`Latest event: ${formatDateTime(snapshot.latestTimestamp)}\n\n`);
+    tooltip.appendMarkdown(
+      `Latest event: ${formatDateTime(snapshot.latestTimestamp)}\n\n`,
+    );
   }
 
-  tooltip.appendMarkdown(`Scanned files: ${snapshot.filesScanned}, token events: ${snapshot.tokenEventsSeen}\n\n`);
-  tooltip.appendMarkdown(`[Open sessions folder](command:codexUsageMonitor.openSessionsFolder)`);
+  tooltip.appendMarkdown(
+    `Scanned files: ${snapshot.filesScanned}, token events: ${snapshot.tokenEventsSeen}\n\n`,
+  );
+  tooltip.appendMarkdown(
+    `[Open sessions folder](command:codexUsageMonitor.openSessionsFolder)`,
+  );
   return tooltip;
 }
 
-function formatWindow(window: CodexUsageSnapshot['primary']): string {
+function formatWindow(window: CodexUsageSnapshot["primary"]): string {
   if (!window) {
-    return 'no data';
+    return "no data";
   }
 
-  const reset = window.resetsAt ? `, resets ${formatEpochSeconds(window.resetsAt)}` : '';
-  const span = window.windowMinutes ? ` / ${formatWindowMinutes(window.windowMinutes)}` : '';
-  return `${formatPercent(window.usedPercent)}${span}${reset}`;
+  const reset = window.resetsAt
+    ? `, resets ${formatEpochSeconds(window.resetsAt)}`
+    : "";
+  return `${formatPercent(window.usedPercent)}${reset}`;
 }
 
 function maybeWarn(snapshot: CodexUsageSnapshot): void {
@@ -136,9 +194,14 @@ function maybeWarn(snapshot: CodexUsageSnapshot): void {
   }
 
   const config = getConfig();
-  const critical = config.get<number>('criticalThresholdPercent', 90);
-  const warning = config.get<number>('warningThresholdPercent', 80);
-  const level = primary.usedPercent >= critical ? 'critical' : primary.usedPercent >= warning ? 'warning' : undefined;
+  const critical = config.get<number>("criticalThresholdPercent", 90);
+  const warning = config.get<number>("warningThresholdPercent", 80);
+  const level =
+    primary.usedPercent >= critical
+      ? "critical"
+      : primary.usedPercent >= warning
+        ? "warning"
+        : undefined;
   if (!level) {
     return;
   }
@@ -150,27 +213,29 @@ function maybeWarn(snapshot: CodexUsageSnapshot): void {
   }
 
   lastWarningKey = key;
-  const message = level === 'critical'
-    ? `Codex primary window is at ${formatPercent(primary.usedPercent)}.`
-    : `Codex primary window reached ${formatPercent(primary.usedPercent)}.`;
+  const message =
+    level === "critical"
+      ? `Codex primary window is at ${formatPercent(primary.usedPercent)}.`
+      : `Codex primary window reached ${formatPercent(primary.usedPercent)}.`;
   vscode.window.showWarningMessage(message);
 }
 
 async function openSessionsFolder(): Promise<void> {
   const config = getConfig();
   const snapshot = await readCodexUsage({
-    codexHome: config.get<string>('codexHome', ''),
+    codexHome: config.get<string>("codexHome", ""),
     scanDays: 1,
   });
   await vscode.env.openExternal(vscode.Uri.file(snapshot.sessionsDir));
 }
 
 function getConfig(): vscode.WorkspaceConfiguration {
-  return vscode.workspace.getConfiguration('codexUsageMonitor');
+  return vscode.workspace.getConfiguration("codexUsageMonitor");
 }
 
-function formatPercent(value: number): string {
-  return `${Math.round(value)}%`;
+function formatPercent(value: number, invert = true): string {
+  const percent = invert ? 100 - value : value;
+  return `${Math.round(percent)}%`;
 }
 
 function formatDateTime(value: string): string {
@@ -191,4 +256,3 @@ function formatWindowMinutes(value: number): string {
   }
   return `${value}m`;
 }
-

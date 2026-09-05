@@ -1,6 +1,8 @@
-﻿# Codex Usage Monitor
+﻿# Codex Usage Monitor (Remaining
 
 A small VS Code extension that shows Codex CLI usage in the status bar by reading local Codex session JSONL files.
+
+This is a fork from yingkaisun-kai/codex-usage-monitor. The change is to show remaining instead of used and other minor presentation updates.
 
 It reads only `token_count` events from:
 

@@ -104,21 +104,10 @@ function renderSnapshot(snapshot: CodexUsageSnapshot): void {
     return;
   }
 
-  let primaryLabel = snapshot.primary?.windowMinutes
-    ? `${formatWindowMinutes(snapshot.primary.windowMinutes)}`
-    : "";
-  let secondaryLabel = snapshot.secondary?.windowMinutes
-    ? `${formatWindowMinutes(snapshot.secondary.windowMinutes)}`
-    : "";
-
-  const primary = snapshot.primary
-    ? `${formatPercent(snapshot.primary.usedPercent)}`
-    : "--";
-  const secondary = snapshot.secondary
-    ? `${formatPercent(snapshot.secondary.usedPercent)}`
-    : "--";
+  const primary = formatStatusWindow(snapshot.primary);
+  const secondary = formatStatusWindow(snapshot.secondary);
   statusBar.text = showSecondary
-    ? `Codex ${primary} (${primaryLabel}) / ${secondary} (${secondaryLabel})`
+    ? `Codex ${primary} / ${secondary}`
     : `Codex ${primary}`;
   statusBar.tooltip = buildTooltip(snapshot);
 }
@@ -181,10 +170,24 @@ function formatWindow(window: CodexUsageSnapshot["primary"]): string {
     return "no data";
   }
 
+  const remaining = window.resetsAt
+    ? ` (${formatTimeRemaining(window.resetsAt)})`
+    : "";
   const reset = window.resetsAt
     ? `, resets ${formatEpochSeconds(window.resetsAt)}`
     : "";
-  return `${formatPercent(window.usedPercent)}${reset}`;
+  return `${formatPercent(window.usedPercent)}${remaining}${reset}`;
+}
+
+function formatStatusWindow(window: CodexUsageSnapshot["primary"]): string {
+  if (!window) {
+    return "--";
+  }
+
+  const remaining = window.resetsAt
+    ? ` (${formatTimeRemaining(window.resetsAt)})`
+    : "";
+  return `${formatPercent(window.usedPercent)}${remaining}`;
 }
 
 function maybeWarn(snapshot: CodexUsageSnapshot): void {
@@ -245,6 +248,37 @@ function formatDateTime(value: string): string {
 
 function formatEpochSeconds(value: number): string {
   return new Date(value * 1000).toLocaleString();
+}
+
+function formatTimeRemaining(resetsAt: number): string {
+  const now = new Date();
+  const reset = new Date(resetsAt * 1000);
+  const remainingMinutes = Math.max(
+    0,
+    Math.ceil((reset.getTime() - now.getTime()) / (60 * 1000)),
+  );
+
+  if (remainingMinutes >= 24 * 60) {
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const resetDate = new Date(
+      reset.getFullYear(),
+      reset.getMonth(),
+      reset.getDate(),
+    );
+    const calendarDays = Math.round(
+      (resetDate.getTime() - today.getTime()) / (24 * 60 * 60 * 1000),
+    );
+    return `${calendarDays}d`;
+  }
+  if (remainingMinutes >= 60) {
+    return `${formatDurationValue(remainingMinutes / 60)}h`;
+  }
+  return `${remainingMinutes}m`;
+}
+
+function formatDurationValue(value: number): string {
+  const rounded = Math.round(value * 10) / 10;
+  return Number.isInteger(rounded) ? `${rounded}` : rounded.toFixed(1);
 }
 
 function formatWindowMinutes(value: number): string {

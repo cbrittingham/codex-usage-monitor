@@ -74,7 +74,6 @@ async function refreshUsage(showInfo: boolean): Promise<void> {
       codexHome: config.get<string>("codexHome", ""),
       scanDays: config.get<number>("scanDays", 14),
     });
-
     renderSnapshot(snapshot);
     outputChannel.appendLine(
       `Usage loaded: primary= secondary= files= events=`,
@@ -166,8 +165,8 @@ function buildTooltip(snapshot: CodexUsageSnapshot): vscode.MarkdownString {
 }
 
 function formatWindow(window: CodexUsageSnapshot["primary"]): string {
-  if (!window) {
-    return "no data";
+  if (!window || isWindowExpired(window)) {
+    return "---";
   }
 
   const remaining = window.resetsAt
@@ -180,8 +179,8 @@ function formatWindow(window: CodexUsageSnapshot["primary"]): string {
 }
 
 function formatStatusWindow(window: CodexUsageSnapshot["primary"]): string {
-  if (!window) {
-    return "--";
+  if (!window || isWindowExpired(window)) {
+    return "---";
   }
 
   const remaining = window.resetsAt
@@ -192,7 +191,7 @@ function formatStatusWindow(window: CodexUsageSnapshot["primary"]): string {
 
 function maybeWarn(snapshot: CodexUsageSnapshot): void {
   const primary = snapshot.primary;
-  if (!primary) {
+  if (!primary || isWindowExpired(primary)) {
     return;
   }
 
@@ -221,6 +220,10 @@ function maybeWarn(snapshot: CodexUsageSnapshot): void {
       ? `Codex primary window is at ${formatPercent(primary.usedPercent)}.`
       : `Codex primary window reached ${formatPercent(primary.usedPercent)}.`;
   vscode.window.showWarningMessage(message);
+}
+
+function isWindowExpired(window: CodexUsageSnapshot["primary"]): boolean {
+  return window?.resetsAt !== undefined && window.resetsAt <= Date.now() / 1000;
 }
 
 async function openSessionsFolder(): Promise<void> {

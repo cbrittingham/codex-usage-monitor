@@ -2,7 +2,7 @@
   "name": "codex-usage-monitor",
   "displayName": "Codex Usage Monitor",
   "description": "Show Codex CLI rate limit and token usage in the VS Code status bar.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "Chet",
   "license": "MIT",
   "repository": {
